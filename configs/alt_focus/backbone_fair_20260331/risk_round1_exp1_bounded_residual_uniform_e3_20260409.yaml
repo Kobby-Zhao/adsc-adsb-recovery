@@ -1,0 +1,53 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v2_1
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+  alt_gate_enabled: true
+  alt_gate_hidden_size: 32
+  alt_gate_mode: teacher_fixed
+  alt_gate_fixed_value: 0.6
+
+training:
+  epochs: 3
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  risk_aware:
+    use_segment_teacher: false
+    use_alt_baseline_residual: true
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+  # no risk-aware teacher losses
+  lambda_alt_gate_supervision: 0.0
+  lambda_alt_gate_risk_shrink: 0.0
+  lambda_alt_edge_first_diff: 0.0
+  lambda_alt_edge_second_diff: 0.0
+  lambda_alt_segment_bound: 0.0
+  alt_edge_steps: 0
+  alt_edge_weight: 1.0
+
+outputs:
+  run_dir: outputs/experiments/exp1_bounded_residual_uniform
+

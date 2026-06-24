@@ -1,0 +1,8 @@
+base_config: train_adsb3864_bilstm_alt_dms_refiner_v2_e20_fair_20260407.yaml
+
+training:
+  segment_augmentation:
+    enabled: false
+
+outputs:
+  run_dir: outputs/runs/fair_train_adsb3864_bilstm_alt_dms_refiner_v2_no_aug_e20_20260407

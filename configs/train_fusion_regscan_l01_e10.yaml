@@ -1,0 +1,56 @@
+seed: 42
+data:
+  samples_path: outputs/ab_cruise/min_cruise_30/data/samples.parquet
+  split:
+    train_ratio: 0.7
+    val_ratio: 0.15
+    test_ratio: 0.15
+  sample_id_col: sample_id
+  flight_id_col: flight_id
+  time_col: minute_ts
+  target_cols: [lat, lon, alt]
+  obs_cols: [obs_lat, obs_lon, obs_alt]
+  obs_mask_col: obs_mask
+  exo_cols: [is_anchor, dt_prev, dt_next, gap_len, gap_pos_ratio, vertical_speed, speed_delta, turn_rate]
+  quality_cols: []
+model:
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  coord_mode: enu
+  u_relative_anchor: true
+  en_relative_anchor: true
+  en_incremental: true
+  fusion_hidden_size: 32
+  fusion_use_exo_quality: false
+loss:
+  type: smooth_l1
+  anchor_weight: 1.0
+  gap_weight: 1.0
+  dim_weights: [1.0, 1.0, 1.0]
+  alpha_vertical: 1.0
+  lambda_pos: 1.0
+  lambda_smooth: 0.1
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.1
+  fusion_reg_long_gap_weight: 2.0
+training:
+  epochs: 10
+  batch_size: 16
+  lr: 0.001
+  weight_decay: 0.0001
+  teacher_forcing_ratio: 0.8
+  teacher_forcing_decay: 0.95
+  grad_clip: 1.0
+  num_workers: 0
+  device: cpu
+  long_gap_threshold: 20
+  checkpoint_monitor_metric: gap_rmse
+  target_norm:
+    enabled: false
+outputs:
+  run_dir: outputs/runs/train_fusion_regscan_l01_e10
+  checkpoint_name: best.pt
+inference:
+  split: test
+  output_csv: outputs/infer/predictions.csv

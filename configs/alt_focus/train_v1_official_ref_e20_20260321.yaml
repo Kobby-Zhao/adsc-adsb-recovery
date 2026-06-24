@@ -1,0 +1,17 @@
+base_config: train_v1_control_e5_20260321.yaml
+
+training:
+  epochs: 20
+  save_every_epoch: true
+  save_epoch_interval: 1
+  checkpoint_monitor_metric: gap_horizontal_rmse_m
+
+selection:
+  official_rule: combo_alt_top3_then_30plus
+  primary_metric: val_gap_alt_rmse
+  topk: 3
+  secondary_metric: val_gap_bucket_30_plus_altrel_rmse
+  exported_checkpoint_name: best_posthoc_combo.pt
+
+outputs:
+  run_dir: outputs/runs/train_v1_official_ref_e20_20260321

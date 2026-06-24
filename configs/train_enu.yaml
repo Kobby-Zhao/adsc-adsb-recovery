@@ -1,0 +1,8 @@
+base_config: base.yaml
+model:
+  coord_mode: enu
+training:
+  epochs: 8
+  batch_size: 16
+outputs:
+  run_dir: outputs/runs/train_enu

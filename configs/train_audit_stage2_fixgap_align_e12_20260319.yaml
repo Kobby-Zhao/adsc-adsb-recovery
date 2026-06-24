@@ -1,0 +1,11 @@
+base_config: train_audit_stage3_fixgap_e12_postfix.yaml
+
+data:
+  samples_path: outputs/mvp_audit_stage2_fixgap/samples.parquet
+
+training:
+  checkpoint_monitor_metric: gap_horizontal_rmse_m
+
+outputs:
+  run_dir: outputs/runs/train_audit_stage2_fixgap_align_e12_20260319
+

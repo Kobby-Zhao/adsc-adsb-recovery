@@ -1,0 +1,139 @@
+seed: 42
+data:
+  samples_path: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage3/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  sample_id_col: sample_id
+  flight_id_col: flight_id
+  time_col: minute_ts
+  target_cols:
+  - lat
+  - lon
+  - alt
+  obs_cols:
+  - obs_lat
+  - obs_lon
+  - obs_alt
+  obs_mask_col: obs_mask
+  exo_cols:
+  - is_anchor
+  - dt_prev
+  - dt_next
+  - gap_len
+  - gap_pos_ratio
+  - vertical_speed
+  - speed_delta
+  - turn_rate
+  vertical_exo_cols:
+  - is_anchor
+  - dt_prev
+  - dt_next
+  - gap_len
+  - gap_pos_ratio
+  - vertical_speed
+  - speed_delta
+  - turn_rate
+  quality_cols: []
+  segment_risk_rules_path: configs/segment_risk_rules.yaml
+model:
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  coord_mode: enu
+  u_relative_anchor: true
+  en_relative_anchor: true
+  en_incremental: true
+  alt_bias_enabled: false
+  alt_bias_hidden_size: 32
+  alt_bias_use_exo_quality: true
+  vertical_projector_enabled: true
+  vertical_projector_hidden_size: 32
+  vertical_projector_use_vertical_exo: true
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v2_1
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+  alt_gate_enabled: true
+  alt_gate_hidden_size: 32
+  alt_gate_mode: teacher_fixed
+  alt_gate_fixed_value: 0.6
+  alt_main_mode: anchor_relative
+  main_rmax_ft: 500.0
+loss:
+  type: smooth_l1
+  anchor_weight: 1.0
+  gap_weight: 2.0
+  dim_weights:
+  - 1.0
+  - 1.0
+  - 1.0
+  alpha_vertical: 1.0
+  lambda_pos: 1.0
+  lambda_smooth: 0.1
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+  lambda_alt_gate_supervision: 0.1
+  lambda_alt_gate_risk_shrink: 0.08
+  alt_gate_risk_target: 0.35
+  lambda_alt_edge_first_diff: 0.05
+  lambda_alt_edge_second_diff: 0.03
+  lambda_alt_segment_bound: 0.04
+  alt_edge_steps: 2
+  alt_edge_weight: 2.0
+training:
+  epochs: 24
+  batch_size: 32
+  lr: 0.001
+  weight_decay: 0.0001
+  teacher_forcing_ratio: 0.8
+  teacher_forcing_decay: 0.95
+  grad_clip: 1.0
+  num_workers: 0
+  device: cpu
+  long_gap_threshold: 20
+  checkpoint_monitor_metric: gap_alt_rmse
+  alt_target_robust:
+    mode: none
+    clip_value: 3000.0
+  alt_label_governance:
+    enabled: false
+  target_norm:
+    enabled: false
+  save_every_epoch: true
+  save_epoch_interval: 1
+  risk_aware:
+    use_segment_teacher: true
+    use_alt_baseline_residual: true
+  curriculum:
+    enabled: true
+    val_stage: stage3
+    train_samples_per_epoch: 800
+    stage_paths:
+      stage1: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage1/samples.parquet
+      stage2: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage2/samples.parquet
+      stage3: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage3/samples.parquet
+    schedule:
+    - end_epoch: 24
+      weights:
+        stage1: 0.0
+        stage2: 0.0
+        stage3: 1.0
+  anchor_gate:
+    strict: false
+  step_heartbeat:
+    enabled: true
+    interval: 5
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp/re_eval_stage3_proposed
+  checkpoint_name: best.pt
+inference:
+  split: test
+  output_csv: outputs/infer/predictions.csv

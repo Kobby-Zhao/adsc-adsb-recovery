@@ -1,0 +1,12 @@
+# shape_opt v3: 最小改动策略 — 原版 + var_reg 防坍缩
+# 验证 var_reg 单独的效果后，再逐步加入 multi_scale / cruise_phys / targeted loss
+base_config: exp_cur_proposed_24e.yaml
+
+loss:
+  # 仅加一项：轻量反方差坍缩
+  lambda_var_reg: 0.005
+  var_reg_min_ratio: 0.2
+  # 其余完全沿用原版，不做任何改动
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_proposed_24e_shape_v3_minimal

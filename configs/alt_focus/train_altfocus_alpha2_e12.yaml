@@ -1,0 +1,8 @@
+base_config: ../train_audit_stage3_fixgap_e12_postfix.yaml
+
+loss:
+  alpha_vertical: 2.0
+
+outputs:
+  run_dir: outputs/runs/train_altfocus_alpha2_e12
+

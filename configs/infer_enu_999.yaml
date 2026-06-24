@@ -1,0 +1,8 @@
+base_config: base.yaml
+data:
+  samples_path: outputs/mvp_999/samples.parquet
+model:
+  coord_mode: enu
+inference:
+  split: test
+  output_csv: outputs/infer/predictions_enu_999.csv

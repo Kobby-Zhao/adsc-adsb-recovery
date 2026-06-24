@@ -1,0 +1,8 @@
+base_config: exp_cur_bilstm_baseline_24e.yaml
+
+training:
+  epochs: 2
+  save_every_epoch: true
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_bilstm_baseline_24e_concat_smoke

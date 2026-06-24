@@ -1,0 +1,11 @@
+base_config: train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_5000pilot_preview_20260321/samples.parquet
+
+training:
+  epochs: 3
+  checkpoint_monitor_metric: gap_horizontal_rmse_m
+
+outputs:
+  run_dir: outputs/runs/train_v1_preview150_e3_20260321

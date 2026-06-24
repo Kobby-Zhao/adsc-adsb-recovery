@@ -1,0 +1,165 @@
+version: v1_smoke_20260409
+source_audit: real_adsc_replay_audit_smoke_20260409
+note: >
+  Initial risk rules derived from 72-segment smoke audit only.
+  Use for directionally-correct training-time risk conditioning.
+  Must be rechecked on full 804-segment audit before finalizing.
+
+defaults:
+  risk_level: medium
+  risk_flag_teacher: 0
+  teacher_scale: 0.55
+  edge_weight: 2.0
+  residual_rmax_m: 182.88
+  gate_bias: 0.0
+
+priority_order:
+  - high_risk_rules
+  - medium_risk_rules
+  - low_risk_rules
+
+high_risk_rules:
+  - name: short_all
+    when:
+      segment_bucket: [short]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.20
+      edge_weight: 3.5
+      residual_rmax_m: 76.20
+      gate_bias: -1.2
+
+  - name: short_two_anchor
+    when:
+      segment_bucket: [short]
+      anchor_pattern: [two_anchor]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.15
+      edge_weight: 4.0
+      residual_rmax_m: 60.96
+      gate_bias: -1.5
+
+  - name: short_sparse_context
+    when:
+      segment_bucket: [short]
+      anchor_pattern: [sparse_context]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.18
+      edge_weight: 4.0
+      residual_rmax_m: 67.06
+      gate_bias: -1.4
+
+  - name: medium_asymmetric
+    when:
+      segment_bucket: [medium]
+      anchor_pattern: [asymmetric]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.25
+      edge_weight: 3.2
+      residual_rmax_m: 91.44
+      gate_bias: -1.0
+
+  - name: medium_sparse_context
+    when:
+      segment_bucket: [medium]
+      anchor_pattern: [sparse_context]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.28
+      edge_weight: 3.0
+      residual_rmax_m: 97.54
+      gate_bias: -0.9
+
+  - name: long_sparse_context
+    when:
+      segment_bucket: [long]
+      anchor_pattern: [sparse_context]
+    assign:
+      risk_level: high
+      risk_flag_teacher: 1
+      teacher_scale: 0.30
+      edge_weight: 3.0
+      residual_rmax_m: 106.68
+      gate_bias: -0.8
+
+medium_risk_rules:
+  - name: medium_two_anchor
+    when:
+      segment_bucket: [medium]
+      anchor_pattern: [two_anchor]
+    assign:
+      risk_level: medium
+      risk_flag_teacher: 1
+      teacher_scale: 0.40
+      edge_weight: 2.5
+      residual_rmax_m: 137.16
+      gate_bias: -0.5
+
+  - name: long_two_anchor
+    when:
+      segment_bucket: [long]
+      anchor_pattern: [two_anchor]
+    assign:
+      risk_level: medium
+      risk_flag_teacher: 1
+      teacher_scale: 0.50
+      edge_weight: 2.0
+      residual_rmax_m: 167.64
+      gate_bias: -0.2
+
+  - name: medium_fallback
+    when:
+      segment_bucket: [medium]
+    assign:
+      risk_level: medium
+      risk_flag_teacher: 1
+      teacher_scale: 0.45
+      edge_weight: 2.5
+      residual_rmax_m: 152.40
+      gate_bias: -0.3
+
+low_risk_rules:
+  - name: long_asymmetric
+    when:
+      segment_bucket: [long]
+      anchor_pattern: [asymmetric]
+    assign:
+      risk_level: low
+      risk_flag_teacher: 0
+      teacher_scale: 0.85
+      edge_weight: 1.5
+      residual_rmax_m: 274.32
+      gate_bias: 0.4
+
+derived_logic:
+  enabled: true
+  notes:
+    - "Rules are structure-level, not sample-level; no label leakage."
+    - "teacher_scale is the recommended residual freedom multiplier."
+    - "edge_weight is for first/last edge_width steps in altitude loss."
+    - "residual_rmax_m bounds tanh residual output."
+    - "gate_bias can be used to initialize or shift gate logits."
+
+edge_settings:
+  edge_width_by_bucket:
+    short: 3
+    medium: 2
+    long: 2
+
+residual_settings:
+  bounded_residual: true
+  formula: "alt_pred = alt_baseline + gate * residual_rmax_m * tanh(raw_residual)"
+
+fallbacks:
+  missing_anchor_pattern:
+    use_segment_bucket_only: true
+  unknown_segment_bucket:
+    assign_default_medium: true

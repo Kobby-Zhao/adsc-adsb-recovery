@@ -1,0 +1,7 @@
+base_config: train_adsb3864_bilstm_alt_dms_refiner_v3_e10_fair_20260407.yaml
+
+training:
+  epochs: 20
+
+outputs:
+  run_dir: outputs/runs/fair_train_adsb3864_bilstm_alt_dms_refiner_v3_e20_20260407

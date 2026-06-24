@@ -1,0 +1,14 @@
+base_config: risk_round1_exp10_local_spike_loss_e3_20260410_fix1.yaml
+
+training:
+  epochs: 1
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  risk_aware:
+    use_segment_teacher: true
+    use_alt_baseline_residual: true
+
+outputs:
+  run_dir: outputs/experiments/exp10_local_spike_loss_logiccheck_e1_20260410
+

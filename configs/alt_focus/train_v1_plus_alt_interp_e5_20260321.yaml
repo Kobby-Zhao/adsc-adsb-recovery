@@ -1,0 +1,5 @@
+base_config: train_v1_control_e5_20260321.yaml
+data:
+  vertical_exo_cols: [is_anchor, dt_prev, dt_next, gap_len, gap_pos_ratio, vertical_speed, speed_delta, turn_rate, anchor_alt_prev, anchor_alt_next, anchor_alt_delta, anchor_alt_interp, alt_linear_interp]
+outputs:
+  run_dir: outputs/runs/train_v1_plus_alt_interp_e5_20260321

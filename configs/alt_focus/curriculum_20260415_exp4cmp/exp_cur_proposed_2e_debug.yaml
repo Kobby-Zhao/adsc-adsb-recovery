@@ -1,0 +1,102 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+data:
+  samples_path: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage1/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+  exo_cols:
+  - is_anchor
+  - dt_prev
+  - dt_next
+  - gap_len
+  - gap_pos_ratio
+  - vertical_speed
+  - speed_delta
+  - turn_rate
+  vertical_exo_cols:
+  - is_anchor
+  - dt_prev
+  - dt_next
+  - gap_len
+  - gap_pos_ratio
+  - vertical_speed
+  - speed_delta
+  - turn_rate
+  segment_risk_rules_path: configs/segment_risk_rules.yaml
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v2_1
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+  alt_gate_enabled: true
+  alt_gate_hidden_size: 32
+  alt_gate_mode: teacher_fixed
+  alt_gate_fixed_value: 0.6
+  alt_main_mode: anchor_relative
+  main_rmax_ft: 500.0
+training:
+  epochs: 2
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  risk_aware:
+    use_segment_teacher: true
+    use_alt_baseline_residual: true
+  curriculum:
+    enabled: true
+    val_stage: stage3
+    train_samples_per_epoch: 160
+    stage_paths:
+      stage1: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage1/samples.parquet
+      stage2: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage2/samples.parquet
+      stage3: outputs/mvp_merged_nostage_20260415/stage_datasets_20260415/stage3/samples.parquet
+    schedule:
+    - end_epoch: 6
+      weights:
+        stage1: 0.7
+        stage2: 0.25
+        stage3: 0.05
+    - end_epoch: 12
+      weights:
+        stage1: 0.45
+        stage2: 0.4
+        stage3: 0.15
+    - end_epoch: 18
+      weights:
+        stage1: 0.25
+        stage2: 0.4
+        stage3: 0.35
+    - end_epoch: 24
+      weights:
+        stage1: 0.1
+        stage2: 0.25
+        stage3: 0.65
+  anchor_gate:
+    strict: false
+  step_heartbeat:
+    enabled: true
+    interval: 10
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+  lambda_alt_gate_supervision: 0.1
+  lambda_alt_gate_risk_shrink: 0.08
+  alt_gate_risk_target: 0.35
+  lambda_alt_edge_first_diff: 0.05
+  lambda_alt_edge_second_diff: 0.03
+  lambda_alt_segment_bound: 0.04
+  alt_edge_steps: 2
+  alt_edge_weight: 2.0
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp/exp_cur_proposed_2e_debug

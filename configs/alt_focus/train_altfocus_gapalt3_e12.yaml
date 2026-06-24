@@ -1,0 +1,8 @@
+base_config: ../train_audit_stage3_fixgap_e12_postfix.yaml
+
+loss:
+  gap_alt_weight: 3.0
+
+outputs:
+  run_dir: outputs/runs/train_altfocus_gapalt3_e12
+

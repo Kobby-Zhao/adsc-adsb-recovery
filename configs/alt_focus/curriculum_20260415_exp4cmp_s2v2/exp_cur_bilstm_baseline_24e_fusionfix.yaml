@@ -1,0 +1,8 @@
+base_config: exp_cur_bilstm_baseline_24e.yaml
+
+model:
+  fusion_position_prior_enabled: true
+  fusion_position_prior_deviation: 0.30
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_bilstm_baseline_24e_fusionfix

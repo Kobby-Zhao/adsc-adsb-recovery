@@ -1,0 +1,11 @@
+# shape_opt smoke: 2 epoch 快速验证 → 确认无误后跑完整版 exp_cur_proposed_24e_shape_opt.yaml
+# 回退：改 config 路径回 exp_cur_proposed_24e.yaml
+base_config: exp_cur_proposed_24e_shape_opt.yaml
+
+training:
+  epochs: 2
+  save_every_epoch: true
+  save_epoch_interval: 1
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_proposed_24e_shape_opt_smoke

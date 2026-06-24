@@ -1,0 +1,4 @@
+base_config: base.yaml
+inference:
+  split: test
+  output_csv: outputs/infer/predictions.csv

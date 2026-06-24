@@ -1,0 +1,12 @@
+base_config: exp_cur_proposed_24e.yaml
+
+model:
+  fusion_position_prior_enabled: true
+  fusion_position_prior_deviation: 0.20
+
+training:
+  epochs: 3
+  save_every_epoch: true
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_proposed_24e_fusionfix_v2

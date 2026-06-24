@@ -1,0 +1,6 @@
+base_config: base.yaml
+model:
+  coord_mode: enu
+inference:
+  split: test
+  output_csv: outputs/infer/predictions_enu.csv

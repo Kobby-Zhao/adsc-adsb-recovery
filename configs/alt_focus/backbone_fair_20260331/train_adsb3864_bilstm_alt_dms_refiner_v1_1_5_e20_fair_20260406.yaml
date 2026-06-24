@@ -1,0 +1,142 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v1_1_5
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  transformer_num_heads: 4
+  transformer_ff_multiplier: 4
+
+  # Keep original optional branches off for fair parallel comparison.
+  alt_bias_enabled: false
+  fusion_use_exo_quality: false
+  vertical_projector_enabled: false
+  vertical_tune_enabled: false
+
+  # Reuse V1 DMS refiner structure; V1.5 differs at segment-level inference policy.
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+
+training:
+  epochs: 20
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  alt_target_robust:
+    mode: none
+    clip_value: 3000.0
+  alt_label_governance:
+    enabled: true
+    mode: drop_sample_by_max_abs_altrel
+    train_gap_abs_altrel_quantile: 0.995
+    outlier_csv: outputs/runs/alt_input_label_audit_20260321/label_top_outliers.csv
+    outlier_split: train
+    outlier_scope: sample_and_flight
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+
+inference:
+  segment_policy:
+    enabled: true
+    # Segment typing:
+    # Stable / Disturbed / Boundary
+    stable_std_threshold: 120.0
+    boundary_short_minutes: 15
+    # Table-driven rule: segment_type + length_bucket -> residual handling.
+    # Fields:
+    # residual_mode: off | scale
+    # residual_scale: residual strength
+    # edge_mode: none | soft_damp | clip | clip_damp
+    # edge_steps / edge_damp: edge damping control
+    # clip_value: per-step altitude residual clipping
+    # output_weight: blend weight toward residual-corrected output
+    policy_table:
+      # Boundary segments: prioritize anti-spike behavior.
+      - segment_type: Boundary
+        length_bucket: <=15
+        residual_mode: off
+        output_weight: 0.0
+      - segment_type: Boundary
+        length_bucket: 15-60
+        residual_mode: scale
+        residual_scale: 0.3
+        edge_mode: clip_damp
+        edge_steps: 2
+        edge_damp: 0.2
+        clip_value: 120.0
+        output_weight: 0.4
+      - segment_type: Boundary
+        length_bucket: >60
+        residual_mode: scale
+        residual_scale: 0.4
+        edge_mode: clip_damp
+        edge_steps: 2
+        edge_damp: 0.25
+        clip_value: 160.0
+        output_weight: 0.5
+      # Disturbed segments: conservative residual with damping.
+      - segment_type: Disturbed
+        length_bucket: <=15
+        residual_mode: off
+        output_weight: 0.0
+      - segment_type: Disturbed
+        length_bucket: 15-60
+        residual_mode: scale
+        residual_scale: 0.45
+        edge_mode: clip_damp
+        edge_steps: 2
+        edge_damp: 0.3
+        clip_value: 180.0
+        output_weight: 0.6
+      - segment_type: Disturbed
+        length_bucket: >60
+        residual_mode: scale
+        residual_scale: 0.6
+        edge_mode: soft_damp
+        edge_steps: 2
+        edge_damp: 0.4
+        clip_value: 220.0
+        output_weight: 0.75
+      # Stable segments: keep V1 behavior with minimal damping.
+      - segment_type: Stable
+        length_bucket: <=15
+        residual_mode: scale
+        residual_scale: 0.7
+        edge_mode: soft_damp
+        edge_steps: 1
+        edge_damp: 0.6
+        clip_value: 250.0
+        output_weight: 0.85
+      - segment_type: Stable
+        length_bucket: 15-60
+        residual_mode: scale
+        residual_scale: 0.9
+        edge_mode: none
+        output_weight: 1.0
+      - segment_type: Stable
+        length_bucket: >60
+        residual_mode: scale
+        residual_scale: 1.0
+        edge_mode: none
+        output_weight: 1.0
+
+outputs:
+  run_dir: outputs/runs/fair_train_adsb3864_bilstm_alt_dms_refiner_v1_1_5_e20_20260406

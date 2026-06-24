@@ -1,0 +1,8 @@
+base_config: ../train_audit_stage3_fixgap_e12_postfix.yaml
+
+loss:
+  lambda_vertical_smooth: 0.02
+
+outputs:
+  run_dir: outputs/runs/train_altfocus_vsmooth002_e12
+

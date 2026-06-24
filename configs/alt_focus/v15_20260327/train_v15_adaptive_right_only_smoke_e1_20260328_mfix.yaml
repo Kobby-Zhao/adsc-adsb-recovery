@@ -1,0 +1,49 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+model:
+  alt_bias_enabled: false
+  fusion_use_exo_quality: false
+  vertical_projector_enabled: true
+  vertical_tune_enabled: true
+  vertical_tune_hidden_size: 16
+  vertical_tune_temperature: 1.0
+  vertical_tune_mode: right_only
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  multi_scale_scales: [5, 10]
+  multi_scale_include_alt: false
+  lambda_cruise_phys: 0.0
+
+training:
+  epochs: 1
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  step_heartbeat:
+    enabled: true
+    interval: 20
+  alt_target_robust:
+    mode: none
+    clip_value: 3000.0
+  alt_label_governance:
+    enabled: true
+    mode: drop_sample_by_max_abs_altrel
+    train_gap_abs_altrel_quantile: 0.995
+    outlier_csv: outputs/runs/alt_input_label_audit_20260321/label_top_outliers.csv
+    outlier_split: train
+    outlier_scope: sample_and_flight
+
+outputs:
+  run_dir: outputs/runs/train_v15_adaptive_right_only_smoke_e1_20260328_mfix

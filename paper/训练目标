@@ -1,0 +1,130 @@
+参数学习与更新策略
+
+本文研究对象为 ADS-C 稀疏锚点条件下的缺失轨迹恢复。与一般序列重建任务不同，ADS-C 锚点并不是需要模型重新预测的未知点，而是恢复过程中已经给定且必须严格保持一致的边界条件。因此，本文在训练目标设计中采用“锚点条件输入、缺失区间优化”的策略：模型以前向预测模块、后向预测模块和双向融合模块得到主干恢复结果 \(\hat{\mathbf p}^{\,main}_t\)，并在高度处理分支作用后得到最终恢复结果 \(\hat{\mathbf p}_t\)。在输出层面，所有锚点位置均被强制替换为观测值：
+
+$$
+\hat{\mathbf p}_t =
+\begin{cases}
+\mathbf p_t^{obs}, & t\in \Omega_{obs},\\
+\hat{\mathbf p}_t, & t\in \Omega_{gap},
+\end{cases}
+$$
+
+其中，\(\Omega_{obs}\) 表示 ADS-C 锚点所在的观测时刻集合，\(\Omega_{gap}\) 表示相邻锚点之间需要恢复的缺失时刻集合。该约束保证模型输出在锚点处与已知 ADS-C 观测严格一致，避免将锚点误差混入恢复性能评价。
+
+在上述约束下，本文的主要重建损失仅作用于缺失区间。记 \(\mathbf p_t=(x_t,y_t,z_t)\) 为真实轨迹位置，\(\hat{\mathbf p}_t=(\hat x_t,\hat y_t,\hat z_t)\) 为模型恢复结果，逐点误差采用 Smooth L1 损失，则缺失区间位置损失定义为：
+
+$$
+\mathcal L_{pos}
+=
+\frac{1}{|\Omega_{gap}|}
+\sum_{t\in \Omega_{gap}}
+\left[
+\ell_h(\hat{\mathbf p}_t,\mathbf p_t)
++
+\alpha_z \ell_z(\hat z_t,z_t)
+\right],
+$$
+
+其中，\(\ell_h(\cdot)\) 表示水平位置误差项，\(\ell_z(\cdot)\) 表示高度误差项，\(\alpha_z\) 为高度维度权重。具体实现中，水平误差由经纬度或局部坐标系下的平面误差构成，高度误差单独计算并与水平误差共同参与优化。由于当前实验采用 hard-anchor 和 gap-only 训练设置，锚点损失权重设置为 0，缺失点损失权重设置为 1，即：
+
+$$
+w_t =
+\begin{cases}
+0, & t\in \Omega_{obs},\\
+1, & t\in \Omega_{gap}.
+\end{cases}
+$$
+
+因此，训练目标并不要求模型在锚点处再次拟合观测值，而是利用锚点作为输入条件约束中间缺失段的恢复。
+
+为提高恢复轨迹的时序连续性，本文同时引入一阶平滑项，对相邻时刻的位移变化进行约束：
+
+$$
+\mathcal L_{sm}
+=
+\frac{1}{|\Omega_s|}
+\sum_{t\in \Omega_s}
+\left\|
+(\hat{\mathbf p}_{t}-\hat{\mathbf p}_{t-1})
+-
+(\mathbf p_t-\mathbf p_{t-1})
+\right\|_1 ,
+$$
+
+其中，\(\Omega_s\) 表示序列中相邻两个时刻均有效的位置集合。对于高度分支模型，进一步在连续缺失点内部加入弱垂直平滑约束：
+
+$$
+\mathcal L_{vsm}
+=
+\frac{1}{|\Omega_{gg}|}
+\sum_{(t-1,t)\in \Omega_{gg}}
+\ell\left(
+\hat z_t-\hat z_{t-1},
+z_t-z_{t-1}
+\right),
+$$
+
+其中，\(\Omega_{gg}\) 表示相邻两个时刻均位于缺失区间内部的点对。该项不跨越锚点边界计算，因此不会破坏 hard-anchor 约束。
+
+对于包含高度残差细化的 A3 模型，本文还引入高度边界与形态约束，以限制残差分支在锚点附近产生不合理突变。其主要包括边界一阶差分约束、边界二阶差分约束、分段残差幅值约束和垂直变化率约束：
+
+$$
+\mathcal L_{alt}
+=
+\lambda_{d1}\mathcal L_{d1}
++
+\lambda_{d2}\mathcal L_{d2}
++
+\lambda_{bd}\mathcal L_{bd}
++
+\lambda_{vr}\mathcal L_{vr}
++
+\lambda_{ba}\mathcal L_{ba}.
+$$
+
+其中，\(\mathcal L_{d1}\) 用于约束缺失段边界附近的一阶高度变化，\(\mathcal L_{d2}\) 用于约束边界附近的二阶高度曲率，\(\mathcal L_{bd}\) 用于限制预测高度相对分段高度基线的超界残差，\(\mathcal L_{vr}\) 用于惩罚超过给定阈值的垂直变化率，\(\mathcal L_{ba}\) 用于约束边界邻近缺失点的高度误差。上述项仅在高度分支对应配置中启用；在 A0 与 A1 中其权重为 0。
+
+综上，模型总体优化目标可写为：
+
+$$
+\mathcal L
+=
+\lambda_{pos}\mathcal L_{pos}
++
+\lambda_{sm}\mathcal L_{sm}
++
+\lambda_{vsm}\mathcal L_{vsm}
++
+\mathcal L_{alt}
++
+\mathcal L_{aux},
+$$
+
+其中，\(\mathcal L_{aux}\) 表示可选的辅助项，例如融合权重正则、多尺度位移约束或高度门控监督等。在当前主要实验配置中，位置恢复损失为核心项；A0 和 A1 不启用额外高度边界损失，A2 启用弱垂直平滑项，A3 在此基础上进一步启用高度边界与残差约束。
+
+记前向预测模块参数为 \(\Theta_f\)，后向预测模块参数为 \(\Theta_b\)，融合模块参数为 \(\Theta_{fus}\)，高度处理分支参数为 \(\Theta_h\)，则模型全部可学习参数可表示为：
+
+$$
+\Theta=\{\Theta_f,\Theta_b,\Theta_{fus},\Theta_h\}.
+$$
+
+训练过程中，所有模块在统一损失函数下联合优化：
+
+$$
+\Theta^{*}
+=
+\arg\min_{\Theta}\mathcal L.
+$$
+
+在第 \(k\) 次迭代中，参数按照梯度下降类优化方法更新：
+
+$$
+\Theta^{(k+1)}
+=
+\Theta^{(k)}
+-
+\eta \nabla_{\Theta}\mathcal L,
+$$
+
+其中，\(\eta\) 表示学习率，\(\nabla_{\Theta}\mathcal L\) 表示总体损失函数对模型参数的梯度。需要强调的是，前向分支、后向分支、双向融合模块和高度处理分支并非分阶段独立训练，而是在同一 gap-only 恢复目标下端到端联合更新。该设计使模型以 ADS-C 锚点作为已知边界条件，重点优化缺失区间内的轨迹恢复结果，更符合跨洋阶段稀疏 ADS-C 数据恢复的实际应用流程。

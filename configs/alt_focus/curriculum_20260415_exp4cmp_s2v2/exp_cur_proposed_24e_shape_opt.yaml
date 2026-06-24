@@ -1,0 +1,36 @@
+# shape_opt v2: 降低正则化强度，允许模型先学习轨迹结构再逐步提升方差
+# 回退方式：将 train 脚本的 config 路径改回 exp_cur_proposed_24e.yaml
+base_config: exp_cur_proposed_24e.yaml
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  # ---- 轻量形状约束（避免早期过强正则化锁死学习）----
+  lambda_multi_scale: 0.01              # [v1 0.05] 降低，先让逐点精度主导
+  multi_scale_scales: [5, 10, 20]
+  multi_scale_include_alt: false        # [v1 true] 高度已有专项约束，不重复
+  lambda_cruise_phys: 0.001             # [v1 0.005] 微量物理正则化
+  cruise_vertical_rate_weight: 2.0
+  lambda_var_reg: 0.005                 # [v1 0.02] 仅防严重坍缩，不强制高方差
+  # ---- 适度提升 ----
+  lambda_vertical_smooth: 0.03          # [原 0.02]
+  lambda_alt_edge_first_diff: 0.1       # [v1 0.2]
+  lambda_alt_edge_second_diff: 0.05     # [v1 0.1]
+  alt_edge_steps: 3
+  # ---- 开启 targeted rightstep2 loss ----
+  use_targeted_rightstep2_loss: true
+  target_bucket: "medium"
+  target_anchor_pattern: "two_anchor"
+  target_jump_lambda: 0.05              # [v1 0.1]
+  target_curve_lambda: 0.03             # [v1 0.05]
+  use_target_rightstep2_boundary_pull: true
+  target_rightstep2_boundary_pull_lambda: 0.1  # [v1 0.15]
+  # ---- 保持不变 ----
+  lambda_alt_gate_supervision: 0.1
+  lambda_alt_gate_risk_shrink: 0.08
+  alt_gate_risk_target: 0.35
+  lambda_alt_segment_bound: 0.04
+  alt_edge_weight: 2.0
+
+outputs:
+  run_dir: outputs/experiments/curriculum_20260415_exp4cmp_s2v2/exp_cur_proposed_24e_shape_opt_v2

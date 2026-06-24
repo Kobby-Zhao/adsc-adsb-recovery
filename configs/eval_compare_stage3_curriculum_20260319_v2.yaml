@@ -1,0 +1,6 @@
+base_config: eval_compare_stage3_curriculum_20260319.yaml
+
+inference:
+  split: test
+  output_csv: outputs/infer/compare_stage3_curriculum_20260319_v2.csv
+

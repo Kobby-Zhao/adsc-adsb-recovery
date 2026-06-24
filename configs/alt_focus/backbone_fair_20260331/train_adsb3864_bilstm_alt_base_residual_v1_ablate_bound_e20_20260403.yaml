@@ -1,0 +1,59 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_base_residual_v1
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  transformer_num_heads: 4
+  transformer_ff_multiplier: 4
+
+  alt_bias_enabled: false
+  fusion_use_exo_quality: false
+  vertical_projector_enabled: false
+  vertical_tune_enabled: false
+
+  alt_base_builder_type: auto
+  alt_base_residual_hidden_size: 64
+  alt_base_residual_dropout: 0.1
+  alt_base_residual_bound_enabled: false
+
+training:
+  epochs: 20
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  alt_target_robust:
+    mode: none
+    clip_value: 3000.0
+  alt_label_governance:
+    enabled: true
+    mode: drop_sample_by_max_abs_altrel
+    train_gap_abs_altrel_quantile: 0.995
+    outlier_csv: outputs/runs/alt_input_label_audit_20260321/label_top_outliers.csv
+    outlier_split: train
+    outlier_scope: sample_and_flight
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+  lambda_alt_residual: 1.0
+  lambda_alt_absolute_aux: 0.3
+  alt_edge_steps: 2
+  alt_edge_weight: 2.0
+  lambda_alt_edge_delta: 0.02
+
+outputs:
+  run_dir: outputs/runs/fair_train_adsb3864_bilstm_alt_base_residual_v1_ablate_bound_e20_20260403

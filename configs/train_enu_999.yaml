@@ -1,0 +1,10 @@
+base_config: base.yaml
+data:
+  samples_path: outputs/mvp_999/samples.parquet
+model:
+  coord_mode: enu
+training:
+  epochs: 6
+  batch_size: 32
+outputs:
+  run_dir: outputs/runs/train_enu_999

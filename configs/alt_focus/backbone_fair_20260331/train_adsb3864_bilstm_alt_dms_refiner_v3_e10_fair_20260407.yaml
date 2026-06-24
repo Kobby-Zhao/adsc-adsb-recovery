@@ -1,0 +1,86 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v3
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  transformer_num_heads: 4
+  transformer_ff_multiplier: 4
+  alt_bias_enabled: false
+  fusion_use_exo_quality: false
+  vertical_projector_enabled: false
+  vertical_tune_enabled: false
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+  # V3 training-side stabilization hooks (only effective for model_variant=v3).
+  v3_anchor_hard_consistency: true
+  v3_edge_residual_damp_enabled: true
+  v3_edge_residual_damp_strength: 0.7
+  v3_edge_residual_damp_steps: 2
+
+training:
+  epochs: 10
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  alt_target_robust:
+    mode: none
+    clip_value: 3000.0
+  alt_label_governance:
+    enabled: true
+    mode: drop_sample_by_max_abs_altrel
+    train_gap_abs_altrel_quantile: 0.995
+    outlier_csv: outputs/runs/alt_input_label_audit_20260321/label_top_outliers.csv
+    outlier_split: train
+    outlier_scope: sample_and_flight
+  # Distribution repair on real pain points (short / boundary / disturbed).
+  segment_augmentation:
+    enabled: true
+    short_max_minutes: 60
+    disturbed_alt_std_threshold: 120.0
+    boundary_incomplete_ratio_threshold: 0.2
+    multiplier_short: 3
+    multiplier_disturbed: 2
+    multiplier_boundary: 3
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+
+  # Anchor hard-consistency + edge stability + segment-bound control.
+  lambda_anchor_consistency: 0.35
+  anchor_boundary_weight: 4.0
+  alt_edge_steps: 2
+  lambda_alt_edge_first_diff: 0.12
+  lambda_alt_edge_second_diff: 0.06
+  lambda_alt_segment_bound: 0.08
+  segment_boundary_short_len: 15
+  segment_disturbed_alt_std_threshold: 120.0
+  alt_residual_cap_stable: 260.0
+  alt_residual_cap_disturbed: 140.0
+  alt_residual_cap_boundary: 90.0
+  alt_residual_cap_short: 70.0
+
+inference:
+  # Keep off by default for fair "pure-trained-model" validation.
+  segment_policy:
+    enabled: false
+
+outputs:
+  run_dir: outputs/runs/fair_train_adsb3864_bilstm_alt_dms_refiner_v3_e10_20260407

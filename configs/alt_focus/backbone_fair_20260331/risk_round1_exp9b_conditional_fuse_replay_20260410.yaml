@@ -1,0 +1,84 @@
+base_config: ../train_v1_control_e5_20260321.yaml
+
+data:
+  samples_path: outputs/mvp_adsb3864_20260322/samples.parquet
+  split:
+    train_ratio: 0.8
+    val_ratio: 0.1
+    test_ratio: 0.1
+  quality_cols: []
+  segment_risk_rules_path: configs/segment_risk_rules.yaml
+
+model:
+  backbone_type: bilstm
+  model_variant: bilstm_alt_dms_refiner_v2_1
+  hidden_size: 128
+  num_layers: 2
+  dropout: 0.2
+  dms_refiner_hidden_size: 64
+  dms_refiner_latent_dim: 32
+  dms_refiner_num_heads: 2
+  dms_refiner_ff_multiplier: 2
+  dms_refiner_dropout: 0.1
+  alt_gate_enabled: true
+  alt_gate_hidden_size: 32
+  alt_gate_mode: teacher_fixed
+  alt_gate_fixed_value: 0.6
+  alt_main_mode: anchor_relative
+  main_rmax_ft: 500.0
+
+training:
+  epochs: 3
+  checkpoint_monitor_metric: gap_alt_rmse
+  save_every_epoch: true
+  save_epoch_interval: 1
+  risk_aware:
+    use_segment_teacher: true
+    use_alt_baseline_residual: true
+
+loss:
+  lambda_unc: 0.0
+  fusion_reg_lambda: 0.0
+  lambda_vertical_smooth: 0.02
+  lambda_multi_scale: 0.0
+  lambda_cruise_phys: 0.0
+  lambda_alt_gate_supervision: 0.10
+  lambda_alt_gate_risk_shrink: 0.08
+  alt_gate_risk_target: 0.35
+  lambda_alt_edge_first_diff: 0.05
+  lambda_alt_edge_second_diff: 0.03
+  lambda_alt_segment_bound: 0.04
+  alt_edge_steps: 2
+  alt_edge_weight: 2.0
+
+outputs:
+  run_dir: outputs/experiments/exp4_bc_main_anchor_relative_20260410_fix2
+
+inference:
+  left_edge_projection:
+    use_left_edge_projection: false
+    left_edge_projection_mode: envelope
+    left_edge_projection_steps: 2
+    left_local_band_ft: 200
+  left_edge_smoothing:
+    use_edge_smoothing_projection: false
+    edge_smoothing_mode: left_blend
+    left_blend_betas: [0.5, 0.3, 0.1]
+    right_edge_smoothing:
+      use_right_edge_smoothing: false
+      right_edge_smoothing_mode: right_blend
+      right_edge_smoothing_steps: 2
+      right_blend_betas: [0.2, 0.5]
+      right_local_band_ft: 200
+    conditional_rightstep2_fuse:
+      use_conditional_rightstep2_fuse: true
+      conditional_target_bucket: medium
+      conditional_target_pattern: two_anchor
+      tau_jump: 200.0
+      fuse_mode: local_interp
+      fuse_lambda: 0.5
+      use_second_condition: true
+      tau_curve: 200.0
+      right_local_band_ft: 200
+    left_edge_smoothing_steps: 3
+    left_slope_cap_ft: 300
